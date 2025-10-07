@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Stock Trainer — Pro (Final)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" href="data:,"/>
+<style>
+  :root{--bg:#f5f7fb;--card:#ffffff;--muted:#667085;--accent:#0f1724;--danger:#ef4444}
+  *{box-sizing:border-box}
+  body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial; margin:0; background:var(--bg); color:#0f1724}
+  header{background:var(--accent); color:#fff; padding:14px 22px; display:flex; align-items:center; justify-content:space-between}
+  header h1{margin:0;font-size:18px;letter-spacing:0.2px}
+  .container{max-width:1150px;margin:22px auto;padding:20px;background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+  .row{display:flex;gap:18px;align-items:flex-start}
+  .left{flex:1}.right{width:380px}
+  input,select,button{font-size:14px;padding:10px;border-radius:8px;border:1px solid #e6eef8}
+  button{background:var(--accent);color:#fff;border:none}
+  .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.04)}
+  .small{font-size:13px;color:var(--muted)}
+  .search-suggestions{background:#fff;border:1px solid #e6eef8;border-radius:8px;margin-top:8px;max-height:220px;overflow:auto}
+  .suggest-item{padding:10px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+  .suggest-item:hover{background:#f8fafc}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:14px}
+  .danger{color:var(--danger)}
+  footer{padding:12px;text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
+  @media(max-width:960px){ .row{flex-direction:column}.right{width:100%} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stock Trainer — Pro</h1>
+  <div id="header-actions" class="small"></div>
+</header>
+
+<main class="container">
+  <!-- LOGIN -->
+  <section id="view-login">
+    <h2>Sign in / Sign up</h2>
+    <p class="small">No guest accounts. New users receive ₹100,000 (virtual). Admin: <b>admin6@vse.com</b></p>
+    <div style="max-width:520px">
+      <input id="email" type="email" placeholder="Email" style="width:100%; margin-bottom:8px" />
+      <input id="password" type="password" placeholder="Password" style="width:100%; margin-bottom:8px" />
+      <div style="display:flex;gap:10px">
+        <button id="btn-login">Sign in / Create account</button>
+        <button id="btn-clear" style="background:#64748b">Clear</button>
+      </div>
+      <p id="login-msg" class="small" style="margin-top:10px;color:var(--muted)"></p>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h2 style="margin:0">Dashboard</h2>
+        <div class="small" id="market-status">Market: checking...</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="small" id="user-email">-</div>
+        <button id="btn-logout" style="background:var(--danger)">Logout</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <div class="left">
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <input id="search-input" placeholder="Search company (e.g., RELIANCE, TCS or RELIANCE.NS)" style="flex:1" />
+            <select id="exchange-select" title="Preferred exchange">
+              <option value="AUTO">Auto-detect</option>
+              <option value="NSE">NSE</option>
+              <option value="BSE">BSE</option>
+              <option value="NASDAQ">NASDAQ</option>
+            </select>
+            <button id="btn-search">Search</button>
+          </div>
+          <div id="suggestions" class="search-suggestions hidden"></div>
+        </div>
+
+        <div id="stock-panel" class="card hidden" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 id="stock-name" style="margin:0">Select a company</h3>
+            <div class="small">Price: <b id="live-price">-</b></div>
+          </div>
+          <div id="tv-widget-wrap" style="height:420px;margin-top:10px;border-radius:8px;overflow:hidden"></div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+            <div class="small">Symbol: <b id="selected-symbol">-</b></div>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <input id="qty" type="number" min="1" value="1" style="width:110px" />
+              <button id="btn-buy">Buy</button>
+              <button id="btn-sell" style="background:var(--danger)">Sell</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="margin:0">Portfolio</h3>
+            <div class="small">Balance: <b id="balance">-</b></div>
+          </div>
+          <table id="portfolio-table" style="margin-top:8px">
+            <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>Price</th><th>Value</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card" style="margin-bottom:12px">
+          <h3 style="margin-top:0">Quick Info</h3>
+          <div class="small">Initial capital: <b>₹100,000</b></div>
+          <div class="small" style="margin-top:8px">Finnhub status: <span id="finnhub-ok">checking...</span></div>
+          <hr/>
+          <h4 style="margin:8px 0 6px">Recent trades</h4>
+          <ul id="trade-log" style="max-height:220px;overflow:auto;padding-left:18px"></ul>
+        </div>
+
+        <div id="admin-link-card" class="card hidden" style="margin-top:12px">
+          <h3 style="margin-top:0">Admin</h3>
+          <div class="small">You are admin. <button id="btn-open-admin">Open Admin Panel</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="view-admin" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0">Admin Panel</h2>
+      <div>
+        <div class="small">Admin: <b id="admin-email-label"></b></div>
+        <button id="btn-admin-back" style="background:#334155;margin-left:10px">Back</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3 style="margin-top:0">All users (sorted by total value)</h3>
+      <table id="admin-users-table">
+        <thead><tr><th>#</th><th>Email</th><th>Balance</th><th>Holdings</th><th>Total</th><th>Profit</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>Made for demo — virtual trades only. Trading/price data: Finnhub. Charts: TradingView.</footer>
+
+<!-- TradingView script -->
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script type="module">
+/* ===========================
+   CONFIG - edit if needed
+   =========================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDr_yQFo5DGNIBpAfOezVYyMd-wtiDwN9c",
+  authDomain: "myweb-cd0a2.firebaseapp.com",
+  projectId: "myweb-cd0a2",
+  storageBucket: "myweb-cd0a2.firebasestorage.app",
+  messagingSenderId: "1095151164416",
+  appId: "1:1095151164416:web:e47219f7e2da4a87bafc43"
+};
+
+// Finnhub token used earlier in conversation
+const FINNHUB_API = "d3bm7n1r01qqg7bv706gd3bm7n1r01qqg7bv7070";
+
+const ADMIN_EMAIL = "admin6@vse.com";
+const ADMIN_PASSWORD = "adminvse2k25";
+const START_BALANCE = 100000;
+
+/* ===========================
+   Firebase v9 (modular) init
+   =========================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ===========================
+   UI references
+   =========================== */
+const viewLogin = document.getElementById('view-login');
+const viewDashboard = document.getElementById('view-dashboard');
+const viewAdmin = document.getElementById('view-admin');
+
+const emailEl = document.getElementById('email');
+const pwdEl = document.getElementById('password');
+const loginMsg = document.getElementById('login-msg');
+const btnLogin = document.getElementById('btn-login');
+const btnClear = document.getElementById('btn-clear');
+const btnLogout = document.getElementById('btn-logout');
+
+const userEmailLabel = document.getElementById('user-email');
+const balanceEl = document.getElementById('balance');
+const portfolioTableBody = document.querySelector('#portfolio-table tbody');
+const tradeLog = document.getElementById('trade-log');
+
+const searchInput = document.getElementById('search-input');
+const btnSearch = document.getElementById('btn-search');
+const suggestionsBox = document.getElementById('suggestions');
+
+const stockPanel = document.getElementById('stock-panel');
+const stockNameEl = document.getElementById('stock-name');
+const tvWidgetWrap = document.getElementById('tv-widget-wrap');
+const livePriceEl = document.getElementById('live-price');
+const selectedSymbolEl = document.getElementById('selected-symbol');
+
+const qtyEl = document.getElementById('qty');
+const btnBuy = document.getElementById('btn-buy');
+const btnSell = document.getElementById('btn-sell');
+
+const finnhubStatusEl = document.getElementById('finnhub-ok');
+const headerActions = document.getElementById('header-actions');
+
+const adminLinkCard = document.getElementById('admin-link-card');
+const btnOpenAdmin = document.getElementById('btn-open-admin');
+const adminUsersTableBody = document.querySelector('#admin-users-table tbody');
+const adminEmailLabel = document.getElementById('admin-email-label');
+const btnAdminBack = document.getElementById('btn-admin-back');
+
+let currentUser = null;
+let currentUserDoc = null;
+let selectedSymbol = null;
+let priceTimer = null;
+let pendingOrdersLocal = []; // local copy while user is active
+
+/* ===========================
+   Utilities
+   =========================== */
+function show(view){
+  viewLogin.classList.add('hidden');
+  viewDashboard.classList.add('hidden');
+  viewAdmin.classList.add('hidden');
+  view.classList.remove('hidden');
+}
+function money(x){ return '₹' + Number(x || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+
+/* Market open check (IST) */
+function isMarketOpenIST(){
+  // compute IST time reliably from system UTC
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const ist = new Date(utc + (5.5 * 3600 * 1000));
+  const day = ist.getDay(); // 0 Sun .. 6 Sat
+  if(day === 0 || day === 6) return false;
+  const minutes = ist.getHours() * 60 + ist.getMinutes();
+  // NSE 09:15 (555) to 15:30 (930)
+  return minutes >= 555 && minutes <= 930;
+}
+
+/* ===========================
+   Finnhub helpers
+   =========================== */
+async function fetchFinnhubSearch(q){
+  const url = `https://finnhub.io/api/v1/search?q=${encodeURIComponent(q)}&token=${FINNHUB_API}`;
+  const res = await fetch(url);
+  if(!res.ok) return {result:[]};
+  return await res.json();
+}
+async function fetchFinnhubQuote(sym){
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_API}`;
+  const res = await fetch(url);
+  if(!res.ok) return {c:0};
+  return await res.json(); // contains c
+}
+
+/* ===========================
+   Robust TradingView symbol mapping + try-candidates
+   =========================== */
+function makeTradingViewCandidates(finnSymbol){
+  if(!finnSymbol) return ['NSE:RELIANCE'];
+  const raw = String(finnSymbol).trim().toUpperCase();
+  const strip = s => s.replace(/(\.NS|\.NSE|\.BO|\.BSE|\.US)$/i,'').replace(/[^A-Z0-9]/g,'');
+  const base = strip(raw);
+  const candidates = [];
+
+  if(raw.includes(':')) candidates.push(raw);
+
+  if(raw.endsWith('.NS') || raw.endsWith('.NSE')) candidates.push('NSE:'+base);
+  if(raw.endsWith('.BO') || raw.endsWith('.BSE')) candidates.push('BSE:'+base);
+
+  // common explicit
+  candidates.push('NSE:'+base);
+  candidates.push('BSE:'+base);
+  candidates.push(base); // sometimes symbol without prefix works
+  candidates.push(base + '.NS');
+  candidates.push(base + '.BO');
+
+  return [...new Set(candidates)];
+}
+
+async function tryRenderCandidate(candidate){
+  // clear and attempt
+  tvWidgetWrap.innerHTML = '';
+  headerActions.textContent = 'Chart: trying ' + candidate;
+  try{
+    new TradingView.widget({
+      "width":"100%","height":420,"symbol":candidate,"interval":"60","timezone":"Asia/Kolkata",
+      "theme":"light","style":"1","locale":"en","toolbar_bg":"#f1f3f6","enable_publishing":false,
+      "hide_side_toolbar":false,"allow_symbol_change":true,"container_id":tvWidgetWrap.id
+    });
+  }catch(e){
+    return false;
+  }
+
+  // wait for iframe load or failure text
+  return new Promise(resolve=>{
+    const start = Date.now();
+    let settled = false;
+    const poll = ()=>{
+      if(settled) return;
+      const iframe = tvWidgetWrap.querySelector('iframe');
+      if(iframe){
+        iframe.addEventListener('load',()=>{ if(!settled){ settled=true; headerActions.textContent = 'Chart: ' + candidate; resolve(true); } }, { once:true });
+        // sometimes already loaded
+        try{
+          if(iframe.contentDocument && iframe.contentDocument.readyState === 'complete'){
+            if(!settled){ settled=true; headerActions.textContent = 'Chart: ' + candidate; resolve(true); }
+            return;
+          }
+        }catch(e){}
+      }
+      const text = (tvWidgetWrap.textContent || '').toLowerCase();
+      if(/not available|not found|invalid symbol|sorry, no data|no data/i.test(text)){
+        if(!settled){ settled=true; resolve(false); }
+        return;
+      }
+      if(Date.now() - start > 4000){
+        if(!settled){ settled=true; resolve(false); }
+        return;
+      }
+      setTimeout(poll, 250);
+    };
+    poll();
+  });
+}
+
+async function renderTradingViewWithFallback(finnSymbol){
+  const candidates = makeTradingViewCandidates(finnSymbol);
+  for(const c of candidates){
+    const ok = await tryRenderCandidate(c);
+    if(ok) return c;
+  }
+  tvWidgetWrap.innerHTML = '<div class="small">Chart not available on TradingView for this symbol. Tried: ' + candidates.join(', ') + '</div>';
+  headerActions.textContent = 'Chart failed';
+  return null;
+}
+
+/* ===========================
+   Firestore helpers (users/{uid})
+   =========================== */
+async function ensureUserDoc(uid, email){
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    const initial = {
+      email,
+      balance: START_BALANCE,
+      portfolio: {},
+      trades: [],
+      watchlist: [],
+      pendingOrders: [],
+      createdAt: Date.now()
+    };
+    await setDoc(ref, initial);
+    return initial;
+  }
+  return snap.data();
+}
+
+/* ===========================
+   UI updates
+   =========================== */
+async function refreshUserUI(){
+  if(!currentUser) return;
+  const ref = doc(db, 'users', currentUser.uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  currentUserDoc = snap.data();
+  userEmailLabel.textContent = currentUser.email;
+  balanceEl.textContent = money(currentUserDoc.balance || 0);
+
+  // portfolio table
+  portfolioTableBody.innerHTML = '';
+  const portfolio = currentUserDoc.portfolio || {};
+  const symbols = Object.keys(portfolio);
+  if(symbols.length === 0){
+    portfolioTableBody.innerHTML = '<tr><td colspan="6" class="small">No holdings yet</td></tr>';
+  } else {
+    // fetch prices in parallel
+    const priceProms = symbols.map(s => fetchFinnhubQuote(s).catch(()=>({c:0})));
+    const priceResults = await Promise.all(priceProms);
+    symbols.forEach((sym, i) => {
+      const holding = portfolio[sym];
+      const curr = priceResults[i].c || 0;
+      const val = (holding.quantity || 0) * curr;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${sym}</td><td>${holding.quantity}</td><td>${money(holding.avgPrice||0)}</td><td>${curr?money(curr):'-'}</td><td>${curr?money(val):'-'}</td><td><button data-sym="${sym}" class="quick-sell">Sell</button></td>`;
+      portfolioTableBody.appendChild(tr);
+    });
+    portfolioTableBody.querySelectorAll('.quick-sell').forEach(b => {
+      b.onclick = async () => {
+        const sym = b.getAttribute('data-sym');
+        const qty = Number(prompt('Quantity to sell (max '+ (portfolio[sym].quantity||0) +')','1'));
+        if(!qty) return;
+        await sellStock(sym, qty);
+      };
+    });
+  }
+
+  // trades
+  tradeLog.innerHTML = '';
+  const trades = (currentUserDoc.trades || []).slice().reverse();
+  trades.slice(0,50).forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'small';
+    li.textContent = `[${new Date(t.ts).toLocaleString()}] ${t.type} ${t.symbol} x ${t.quantity} @ ${money(t.price)}`;
+    tradeLog.appendChild(li);
+  });
+
+  // admin visibility
+  if(currentUser.email === ADMIN_EMAIL) adminLinkCard.classList.remove('hidden'); else adminLinkCard.classList.add('hidden');
+}
+
+/* ===========================
+   Buy / Sell / Pending orders
+   =========================== */
+async function buyStock(symbol, qty){
+  if(!currentUser) return alert('Please sign in');
+  qty = Number(qty || 0);
+  if(!qty || qty <= 0) return alert('Enter valid quantity');
+
+  // fetch latest price
+  const q = await fetchFinnhubQuote(symbol);
+  const price = q.c || 0;
+  if(!price) return alert('Price unavailable');
+
+  // if market closed -> pending
+  if(!isMarketOpenIST()){
+    // push pendingOrders into firestore
+    const ref = doc(db, 'users', currentUser.uid);
+    const snap = await getDoc(ref);
+    const userDoc = snap.data();
+    const pending = userDoc.pendingOrders || [];
+    pending.push({ type:'BUY', symbol, quantity:qty, placedAt: Date.now(), status:'pending' });
+    await updateDoc(ref, { pendingOrders: pending });
+    await refreshUserUI();
+    alert('Market closed. Order saved as pending and will execute when market opens.');
+    return;
+  }
+
+  // execute immediate
+  const ref = doc(db, 'users', currentUser.uid);
+  const snap = await getDoc(ref);
+  const u = snap.data();
+  const balance = u.balance || 0;
+  const cost = price * qty;
+  if(balance < cost) return alert('Insufficient balance');
+  const portfolio = u.portfolio || {};
+  if(!portfolio[symbol]) portfolio[symbol] = { quantity: qty, avgPrice: price };
+  else {
+    const prev = portfolio[symbol];
+    const newQty = prev.quantity + qty;
+    const newAvg = ((prev.avgPrice * prev.quantity) + (price * qty)) / newQty;
+    portfolio[symbol] = { quantity: newQty, avgPrice: newAvg };
+  }
+  const trades = u.trades || [];
+  trades.push({ type:'BUY', symbol, quantity: qty, price, ts: Date.now() });
+  await updateDoc(ref, { balance: balance - cost, portfolio, trades });
+  await refreshUserUI();
+  alert(`Bought ${qty} ${symbol} @ ${money(price)}`);
+}
+
+async function sellStock(symbol, qty){
+  if(!currentUser) return alert('Please sign in');
+  qty = Number(qty || 0);
+  if(!qty || qty <= 0) return alert('Enter valid quantity');
+  const ref = doc(db, 'users', currentUser.uid);
+  const snap = await getDoc(ref);
+  const u = snap.data();
+  const portfolio = u.portfolio || {};
+  const holding = portfolio[symbol];
+  if(!holding || holding.quantity < qty) return alert('Not enough quantity to sell');
+
+  const q = await fetchFinnhubQuote(symbol);
+  const price = q.c || 0;
+  if(!price) return alert('Price unavailable');
+
+  if(!isMarketOpenIST()){
+    // save pending
+    const pending = u.pendingOrders || [];
+    pending.push({ type:'SELL', symbol, quantity: qty, placedAt: Date.now(), status:'pending' });
+    await updateDoc(ref, { pendingOrders: pending });
+    await refreshUserUI();
+    alert('Market closed. Sell order saved as pending.');
+    return;
+  }
+
+  // immediate sell
+  holding.quantity -= qty;
+  if(holding.quantity <= 0) delete portfolio[symbol];
+  const trades = u.trades || [];
+  trades.push({ type:'SELL', symbol, quantity: qty, price, ts: Date.now() });
+  const newBalance = (u.balance || 0) + (price * qty);
+  await updateDoc(ref, { balance: newBalance, portfolio, trades });
+  await refreshUserUI();
+  alert(`Sold ${qty} ${symbol} @ ${money(price)}`);
+}
+
+/* Process pending orders for a user (when market opens) */
+async function processPendingOrdersForUser(uid){
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  const u = snap.data();
+  const pending = (u.pendingOrders || []).filter(o => o.status === 'pending');
+  if(pending.length === 0) return;
+
+  let changed = false;
+  for(const o of pending){
+    try{
+      const priceObj = await fetchFinnhubQuote(o.symbol);
+      const price = priceObj.c || 0;
+      if(!price) { o.status = 'failed'; o.note = 'price unavailable'; o.executedAt = Date.now(); changed = true; continue; }
+
+      if(o.type === 'BUY'){
+        if((u.balance || 0) >= price * o.quantity){
+          // update portfolio
+          u.portfolio = u.portfolio || {};
+          if(!u.portfolio[o.symbol]) u.portfolio[o.symbol] = { quantity: o.quantity, avgPrice: price };
+          else {
+            const prev = u.portfolio[o.symbol];
+            const newQty = prev.quantity + o.quantity;
+            const newAvg = ((prev.avgPrice * prev.quantity) + (price * o.quantity)) / newQty;
+            u.portfolio[o.symbol] = { quantity: newQty, avgPrice: newAvg };
+          }
+          u.balance = (u.balance || 0) - price * o.quantity;
+          u.trades = u.trades || [];
+          u.trades.push({ type:'BUY', symbol: o.symbol, quantity: o.quantity, price, ts: Date.now() });
+          o.status = 'executed';
+          o.executedAt = Date.now();
+          changed = true;
+        } else {
+          o.status = 'failed';
+          o.note = 'insufficient balance at open';
+          o.executedAt = Date.now();
+          changed = true;
+        }
+      } else if(o.type === 'SELL'){
+        const h = (u.portfolio || {})[o.symbol];
+        if(h && h.quantity >= o.quantity){
+          u.balance = (u.balance || 0) + price * o.quantity;
+          h.quantity -= o.quantity;
+          if(h.quantity <= 0) delete u.portfolio[o.symbol];
+          u.trades = u.trades || [];
+          u.trades.push({ type:'SELL', symbol: o.symbol, quantity: o.quantity, price, ts: Date.now() });
+          o.status = 'executed';
+          o.executedAt = Date.now();
+          changed = true;
+        } else {
+          o.status = 'failed';
+          o.note = 'not enough holdings';
+          o.executedAt = Date.now();
+          changed = true;
+        }
+      }
+    }catch(e){
+      o.status = 'failed';
+      o.note = e.message;
+      o.executedAt = Date.now();
+      changed = true;
+    }
+  }
+
+  if(changed){
+    // rewrite pendingOrders
+    await updateDoc(ref, { balance: u.balance, portfolio: u.portfolio, trades: u.trades, pendingOrders: (u.pendingOrders || []) });
+  }
+}
+
+/* ===========================
+   Auth flows: sign-in / sign-up
+   - Block creating admin accounts via signup.
+   - Admin can login with predefined password; if admin account doesn't exist, create it only when admin logs in with correct password.
+   =========================== */
+btnLogin.onclick = async () => {
+  const email = emailEl.value.trim();
+  const pwd = pwdEl.value.trim();
+  loginMsg.textContent = 'Working...';
+  if(!email || !pwd){ loginMsg.textContent = 'Enter email & password'; return; }
+
+  // Block sign-up as admin unless password matches ADMIN_PASSWORD
+  if(email === ADMIN_EMAIL && pwd !== ADMIN_PASSWORD){
+    // attempt sign-in -> will fail, but we should not create admin for wrong password
+    try{
+      await signInWithEmailAndPassword(auth, email, pwd);
+    }catch(e){
+      loginMsg.textContent = 'Admin account protected. Incorrect credentials.';
+      return;
+    }
+  }
+
+  try {
+    // First try sign-in
+    let cred = null;
+    try {
+      cred = await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (signErr) {
+      // If user not found -> create
+      if(signErr.code === 'auth/user-not-found'){
+        // If attempting to create admin account, ensure exact admin password
+        if(email === ADMIN_EMAIL){
+          if(pwd !== ADMIN_PASSWORD){
+            loginMsg.textContent = 'Cannot create admin account.';
+            return;
+          }
+          // else allow create admin
+          cred = await createUserWithEmailAndPassword(auth, email, pwd);
+          // create user doc with admin starting balance
+          await setDoc(doc(db, 'users', cred.user.uid), {
+            email: cred.user.email, balance: START_BALANCE, portfolio: {}, trades: [], watchlist: [], pendingOrders: [], createdAt: Date.now()
+          });
+        } else {
+          // create normal user
+          cred = await createUserWithEmailAndPassword(auth, email, pwd);
+          await ensureUserDoc(cred.user.uid, cred.user.email);
+        }
+      } else if (signErr.code === 'auth/wrong-password'){
+        loginMsg.textContent = 'Wrong password';
+        return;
+      } else {
+        loginMsg.textContent = 'Auth error: ' + signErr.message;
+        return;
+      }
+    }
+
+    currentUser = cred.user;
+    await ensureUserDoc(currentUser.uid, currentUser.email);
+    loginMsg.textContent = '';
+    // after sign-in, process pending orders if market open
+    if(isMarketOpenIST()){
+      await processPendingOrdersForUser(currentUser.uid);
+    }
+    await refreshUserUI();
+    show(viewDashboard);
+  } catch (err){
+    loginMsg.textContent = 'Error: ' + err.message;
+  }
+};
+
+btnClear.onclick = ()=>{ emailEl.value=''; pwdEl.value=''; loginMsg.textContent=''; };
+
+/* Logout */
+btnLogout.onclick = async ()=>{ await signOut(auth); currentUser=null; currentUserDoc=null; show(viewLogin); };
+
+/* Keep auth state */
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    currentUser = user;
+    await ensureUserDoc(user.uid, user.email);
+    // process pendingOrders for this user if market open
+    if(isMarketOpenIST()) await processPendingOrdersForUser(user.uid);
+    await refreshUserUI();
+    show(viewDashboard);
+  } else {
+    currentUser = null;
+    currentUserDoc = null;
+    show(viewLogin);
+  }
+});
+
+/* ===========================
+   Search suggestions & selecting a stock
+   =========================== */
+let suggestTimer = null;
+searchInput.addEventListener('input', async (e) => {
+  const q = e.target.value.trim();
+  if(!q){ suggestionsBox.classList.add('hidden'); return; }
+  if(suggestTimer) clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(async ()=>{
+    try{
+      const res = await fetchFinnhubSearch(q);
+      suggestionsBox.innerHTML = '';
+      const items = (res.result || []).slice(0,10);
+      if(items.length === 0) suggestionsBox.innerHTML = '<div class="small" style="padding:10px">No results</div>';
+      else items.forEach(it=>{
+        const d = document.createElement('div');
+        d.className = 'suggest-item';
+        d.textContent = `${it.description} — ${it.symbol}`;
+        d.onclick = async ()=>{
+          suggestionsBox.classList.add('hidden');
+          await selectSymbol(it.symbol, it.description);
+        };
+        suggestionsBox.appendChild(d);
+      });
+      suggestionsBox.classList.remove('hidden');
+    }catch(e){
+      suggestionsBox.innerHTML = '<div class="small" style="padding:10px">Search failed</div>'; suggestionsBox.classList.remove('hidden');
+    }
+  }, 220);
+});
+
+btnSearch.onclick = async ()=>{
+  const q = searchInput.value.trim();
+  if(!q) return alert('Type company name/symbol');
+  try{
+    const res = await fetchFinnhubSearch(q);
+    const items = (res.result||[]);
+    if(items.length === 0) return alert('No matches');
+    const it = items[0];
+    await selectSymbol(it.symbol, it.description);
+  }catch(e){
+    alert('Search failed: ' + e.message);
+  }
+};
+
+async function selectSymbol(symbol, description){
+  selectedSymbol = symbol;
+  stockNameEl.textContent = `${description || symbol} (${symbol})`;
+  selectedSymbolEl.textContent = symbol;
+  stockPanel.classList.remove('hidden');
+  // render chart (robust fallback)
+  await renderTradingViewWithFallback(symbol);
+  // start live price update every 1 second
+  if(priceTimer) clearInterval(priceTimer);
+  await updateLivePriceOnce();
+  priceTimer = setInterval(updateLivePriceOnce, 1000); // 1 second
+}
+
+/* update displayed live price (1s) */
+async function updateLivePriceOnce(){
+  if(!selectedSymbol) return;
+  try{
+    const q = await fetchFinnhubQuote(selectedSymbol);
+    const p = q.c || 0;
+    livePriceEl.textContent = p ? money(p) : '-';
+  }catch(e){
+    livePriceEl.textContent = '-';
+  }
+}
+
+/* ===========================
+   Buy / Sell UI wiring
+   =========================== */
+btnBuy.addEventListener('click', async ()=>{
+  if(!selectedSymbol) return alert('Select a stock first');
+  const qty = Number(qtyEl.value || 1);
+  await buyStock(selectedSymbol, qty);
+});
+
+btnSell.addEventListener('click', async ()=>{
+  if(!selectedSymbol) return alert('Select a stock first');
+  const qty = Number(qtyEl.value || 1);
+  await sellStock(selectedSymbol, qty);
+});
+
+/* ===========================
+   Admin panel (loads fresh each open)
+   =========================== */
+btnOpenAdmin && btnOpenAdmin.addEventListener('click', async ()=>{
+  if(!currentUser || currentUser.email !== ADMIN_EMAIL) return alert('Admin only');
+  adminEmailLabel.textContent = currentUser.email;
+  show(viewAdmin);
+  // fetch all users and compute holdings values
+  const snaps = await getDocs(collection(db, 'users'));
+  const users = [];
+  for(const s of snaps.docs){
+    const d = s.data();
+    // compute holdings value by summing quantity * avgPrice (approx)
+    let holdings = 0;
+    for(const sym of Object.keys(d.portfolio || {})){
+      const h = d.portfolio[sym];
+      holdings += (h.quantity || 0) * (h.avgPrice || 0);
+    }
+    const total = (d.balance || 0) + holdings;
+    users.push({ email: d.email, balance: d.balance || 0, holdings, total });
+  }
+  users.sort((a,b)=>b.total - a.total);
+  adminUsersTableBody.innerHTML = '';
+  users.forEach((u, i)=>{
+    const profit = u.total - START_BALANCE;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i<3?'<span class="top3">'+(i+1)+'</span>':i+1}</td>
+                    <td>${u.email}</td>
+                    <td>${money(u.balance)}</td>
+                    <td>${money(u.holdings)}</td>
+                    <td>${money(u.total)}</td>
+                    <td class="${profit<0?'danger':''}">${money(profit)}</td>`;
+    adminUsersTableBody.appendChild(tr);
+  });
+});
+
+btnAdminBack.addEventListener('click', ()=> { show(viewDashboard); refreshUserUI(); });
+
+/* ===========================
+   Periodic tasks
+   - Process pending orders for ALL users when market opens (periodic check)
+   - Update market status and Finnhub connectivity
+   =========================== */
+let lastOpenState = null;
+
+// run every 10s to process pending orders globally if market open
+setInterval(async ()=>{
+  try{
+    const open = isMarketOpenIST();
+    document.getElementById('market-status').textContent = 'Market: ' + (open ? 'OPEN' : 'CLOSED (09:15–15:30 IST)');
+    if(open && lastOpenState !== true){
+      // market just opened -> process pending orders for all users
+      const snaps = await getDocs(collection(db, 'users'));
+      for(const s of snaps.docs){
+        await processPendingOrdersForUser(s.id);
+      }
+      // refresh current user's UI if signed in
+      if(currentUser) await refreshUserUI();
+    }
+    lastOpenState = open;
+  }catch(e){
+    console.error('Periodic task error', e);
+  }
+}, 10000);
+
+// simple Finnhub connectivity check
+(async ()=>{
+  try{
+    const check = await fetch(`https://finnhub.io/api/v1/quote?symbol=INFY.NS&token=${FINNHUB_API}`);
+    finnHubStatusUpdate(check.ok);
+  }catch(e){ finnHubStatusUpdate(false); }
+})();
+function finnHubStatusUpdate(ok){ document.getElementById('finnhub-ok').textContent = ok ? 'OK' : 'Unavailable'; }
+
+/* ===========================
+   Final: on page load show login
+   =========================== */
+show(viewLogin);
+
+</script>
+</body>
+</html>
